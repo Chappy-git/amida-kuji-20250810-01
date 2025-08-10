@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>あみだくじ</title>
+    <meta name="theme-color" content="#111827" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+      html, body { margin:0; padding:0; background:#f8fafc; color:#0f172a; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, Helvetica, Arial, sans-serif; }
+      .container { max-width:1000px; margin:24px auto; padding:16px; }
+      .card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.05); padding:16px; }
+      .h1 { font-size:22px; font-weight:800; margin:0 0 12px; letter-spacing:.02em; }
+      .row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:12px; }
+      .label { font-size:12px; margin-bottom:4px; display:block; color:#334155; }
+      input[type=number], input[type=text] { border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; outline:none; font-size:16px; }
+      input[type=text] { width:140px; }
+      .btn { border:0; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; font-size:16px; }
+      .btn-primary { background:#111827; color:#fff; }
+      .btn-primary:hover { opacity:.9; }
+      .btn-blue { background:#2563eb; color:#fff; }
+      .btn-blue:disabled { opacity:.5; cursor:not-allowed; }
+      .muted { color:#64748b; font-size:12px; }
+      .stage { position:relative; margin-top: 24px; }
+      .top-inputs { position:absolute; left:0; right:0; top:8px; display:flex; justify-content:space-between; padding:0 16px; z-index:3; gap: 8px; }
+      .top-inputs > div { width: 120px; transform: translateX(-50%); }
+      .top-inputs input { background:#fff; width: 120px; }
+      .svg-wrap { position:relative; overflow:auto; z-index:1; margin-top: 56px; }
+      .win-label { font-weight:700; margin-left: 8px; }
+      @media (max-width: 600px) {
+        .container { margin: 0 auto; padding: 8px; }
+        .top-inputs { top: 6px; padding: 0 8px; }
+        .top-inputs > div { width: 100px; }
+        .top-inputs input { width: 100px; padding: 8px 10px; }
+        .svg-wrap { margin-top: 50px; }
+        .h1 { font-size: 20px; }
+      }
+    </style>
+    <!-- React + ReactDOM (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div id="root" class="card"></div>
+    </div>
+
+    <script type="text/babel">
+      const { useState, useMemo } = React;
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+      function generateRungs(numPlayers, height) {
+        const rungs = [];
+        const minGap = 28;
+        const pairs = numPlayers - 1;
+        const baseCount = clamp(Math.round(height / 120), 2, 7);
+        for (let p = 0; p < pairs; p++) {
+          const count = baseCount + Math.floor(Math.random() * 2);
+          const ys = [];
+          for (let i = 0; i < count; i++) {
+            let tries = 0;
+            while (tries < 40) {
+              const y = 40 + Math.random() * (height - 80);
+              if (ys.every((yy) => Math.abs(yy - y) >= minGap)) {
+                const neighborLeft = rungs.filter((r) => r.leftCol === p - 1);
+                const neighborRight = rungs.filter((r) => r.leftCol === p + 1);
+                const nearNeighbor = [...neighborLeft, ...neighborRight].some((r) => Math.abs(r.y - y) < minGap * 0.7);
+                if (!nearNeighbor) { ys.push(y); rungs.push({ leftCol: p, y }); break; }
+              }
+              tries++;
+            }
+          }
+        }
+        rungs.sort((a, b) => a.y - b.y);
+        return rungs;
+      }
+
+      function tracePath(startCol, rungs, colXs, topY, bottomY) {
+        let col = startCol;
+        let y = topY;
+        const points = [[colXs[col], y]];
+        for (const rung of rungs) {
+          if (rung.leftCol === col || rung.leftCol === col - 1) {
+            const goingDown = rung.y > y;
+            const isOnLeft = rung.leftCol === col;
+            const isOnRight = rung.leftCol === col - 1;
+            if (goingDown && (isOnLeft || isOnRight)) {
+              points.push([colXs[col], rung.y]);
+              col = isOnLeft ? col + 1 : col - 1;
+              points.push([colXs[col], rung.y]);
+              y = rung.y;
+            }
+          }
+        }
+        points.push([colXs[col], bottomY]);
+        return { points, endCol: col };
+      }
+
+      function App() {
+        const width = 900, height = 520, topY = 40, bottomY = height - 40;
+        const [numPlayers, setNumPlayers] = React.useState(5);
+        const [generated, setGenerated] = React.useState(false);
+        const [names, setNames] = React.useState([]);
+        const [rungs, setRungs] = React.useState([]);
+        const [winBottom, setWinBottom] = React.useState(null);
+        const [revealed, setRevealed] = React.useState(false);
+        const [winnerTop, setWinnerTop] = React.useState(null);
+
+        const colXs = React.useMemo(() => {
+          const cols = numPlayers;
+          const margin = 80;
+          const usable = width - margin * 2;
+          const gap = cols > 1 ? usable / (cols - 1) : 0;
+          return Array.from({ length: cols }, (_, i) => margin + i * gap);
+        }, [numPlayers]);
+
+        const handleGenerate = () => {
+          if (numPlayers < 2) { alert("人数は2人以上にしてください。"); return; }
+          const rs = generateRungs(numPlayers, bottomY - topY);
+          const win = Math.floor(Math.random() * numPlayers);
+          setRungs(rs); setWinBottom(win); setRevealed(false); setWinnerTop(null); setGenerated(true);
+          setNames((prev) => {
+            const next = [...prev]; next.length = numPlayers;
+            for (let i=0;i<numPlayers;i++) if (next[i] == null) next[i] = "";
+            return next;
+          });
+        };
+
+        const allPaths = React.useMemo(() => {
+          if (!generated) return [];
+          return colXs.map((_, i) => tracePath(i, rungs, colXs, topY, bottomY));
+        }, [generated, rungs, colXs]);
+
+        const computeWinner = () => {
+          if (!generated || winBottom == null) return;
+          const idx = allPaths.findIndex((p) => p.endCol === winBottom);
+          setWinnerTop(idx >= 0 ? idx : null);
+          setRevealed(true);
+          setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
+        };
+
+        const winnerName = React.useMemo(() => {
+          if (winnerTop == null) return "";
+          return names[winnerTop] || `参加者${winnerTop + 1}`;
+        }, [winnerTop, names]);
+
+        return (
+          <div>
+            <h1 className="h1">あみだくじ</h1>
+            <div className="row">
+              <div>
+                <label className="label">人数</label>
+                <input type="number" min={2} value={numPlayers}
+                  onChange={(e) => setNumPlayers(clamp(parseInt(e.target.value || "0", 10), 2, 16))} />
+              </div>
+              <button className="btn btn-primary" onClick={handleGenerate}>生成</button>
+              <button className="btn btn-blue" onClick={computeWinner} disabled={!generated || revealed}>結果発表</button>
+              {revealed && winnerTop != null && (
+                <span className="win-label">当たり：{winnerName}</span>
+              )}
+            </div>
+
+            {!generated && <p className="muted">人数を入力して「生成」を押してください。各列の上で名前を入力できます。</p>}
+
+            {generated && (
+              <div className="stage">
+                <div className="svg-wrap">
+                  <svg width={900} height={520} style={{ background:"#fff", borderRadius: 12, border: "1px solid #e5e7eb" }}>
+                    {colXs.map((x, i) => (
+                      <line key={"v-"+i} x1={x} y1={topY} x2={x} y2={bottomY} stroke="#111" strokeWidth="2" />
+                    ))}
+                    {rungs.map((r, idx) => (
+                      <line key={"h-"+idx} x1={colXs[r.leftCol]} y1={r.y} x2={colXs[r.leftCol + 1]} y2={r.y} stroke="#111" strokeWidth="3" />
+                    ))}
+                    {revealed && winnerTop != null && (
+                      <>
+                        <polyline
+                          points={allPaths[winnerTop].points.map((p) => p.join(",")).join(" ")}
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="5"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                        {winBottom != null && (
+                          <text x={colXs[winBottom]} y={bottomY + 24} textAnchor="middle" fontSize="12" fill="#ef4444">当たり</text>
+                        )}
+                      </>
+                    )}
+                    {colXs.map((x, i) => (
+                      <text key={"t-"+i} x={x} y={topY - 10} textAnchor="middle" fontSize="12" fill="#111">
+                        {names[i] || `参加者${i + 1}`}
+                      </text>
+                    ))}
+                  </svg>
+                </div>
+                <div className="top-inputs" aria-label="参加者名入力欄">
+                  {colXs.map((_, i) => (
+                    <div key={i}>
+                      <input type="text" aria-label={"参加者"+(i+1)+"の名前"} autocomplete="off" placeholder={"名前"+(i + 1)}
+                        value={names[i] ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setNames((prev) => { const next = [...prev]; next[i] = v; return next; });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="muted" style={{ marginTop: 10 }}>
+              初回アクセス時はオンラインでキャッシュします。次回以降はオフラインでも動作します。
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+      }
+    </script>
+  </body>
+</html>
