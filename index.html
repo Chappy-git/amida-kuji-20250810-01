@@ -6,15 +6,37 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <style>
 html,body{margin:0;padding:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,Helvetica,Arial,sans-serif}
-.container{max-width:1000px;margin:24px auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:16px}
-.h1{font-size:22px;font-weight:800;margin:0 0 12px;letter-spacing:.02em}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
-.label{font-size:12px;margin-bottom:4px;display:block;color:#334155}input[type=tel],input[type=text]{border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;outline:none;font-size:16px}
-input[type=text]{width:140px}.btn{border:0;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;font-size:16px}
-.btn-primary{background:#111827;color:#fff}.btn-primary:hover{opacity:.9}.btn-blue{background:#2563eb;color:#fff}.btn-blue:disabled{opacity:.5;cursor:not-allowed}
-.muted{color:#64748b;font-size:12px}.stage{position:relative;margin-top:24px}.top-inputs{position:absolute;left:0;right:0;top:8px;display:flex;justify-content:space-between;padding:0 16px;z-index:3;gap:8px}
-.top-inputs>div{width:120px;transform:translateX(-50%)}.top-inputs input{background:#fff;width:120px}.svg-wrap{position:relative;overflow:auto;z-index:1;margin-top:56px}.win-label{font-weight:700;margin-left:8px}
+.container{max-width:1000px;margin:24px auto;padding:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:16px}
+.h1{font-size:22px;font-weight:800;margin:0 0 12px;letter-spacing:.02em}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
+.label{font-size:12px;margin-bottom:4px;display:block;color:#334155}
+input[type=tel],input[type=text]{border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;outline:none;font-size:16px}
+input[type=text]{width:140px}
+.btn{border:0;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;font-size:16px}
+.btn-primary{background:#111827;color:#fff} .btn-primary:hover{opacity:.9}
+.btn-blue{background:#2563eb;color:#fff} .btn-blue:disabled{opacity:.5;cursor:not-allowed}
+.muted{color:#64748b;font-size:12px}
+.stage{margin-top:16px}
+
+/* Responsive SVG holder (keeps 900x520 ratio) */
+.svg-holder{position:relative;width:100%;max-width:100%;}
+.svg-spacer{width:100%;padding-top:57.7777%;} /* 520/900*100 */
+.svg-abs{position:absolute;inset:0;}
+svg{display:block;width:100%;height:100%}
+
+/* Inputs overlay inside the same holder so they track scaling */
+.top-inputs{position:absolute;left:0;right:0;top:6px;z-index:3;pointer-events:none;}
+.top-inputs .name-wrap{position:absolute;transform:translateX(-50%);width:28vw;max-width:120px;min-width:64px}
+.top-inputs input{background:#fff;width:100%;pointer-events:auto;}
+
+/* Small screens */
+@media (max-width:600px){
+  .container{margin:0 auto;padding:8px}
+  .h1{font-size:20px}
+  .top-inputs .name-wrap{width:18vw;max-width:90px;min-width:56px}
+}
 .version{color:#94a3b8;font-size:11px;margin-left:8px}
-@media (max-width:600px){.container{margin:0 auto;padding:8px}.top-inputs{top:6px;padding:0 8px}.top-inputs>div{width:100px}.top-inputs input{width:100px;padding:8px 10px}.svg-wrap{margin-top:50px}.h1{font-size:20px}}
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -22,9 +44,17 @@ input[type=text]{width:140px}.btn{border:0;padding:10px 14px;border-radius:12px;
 </head><body><div class="container"><div id="root" class="card"></div></div>
 <script type="text/babel">
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-function generateRungs(n,h){const r=[];const minGap=28;const pairs=n-1;const base=Math.max(2,Math.min(7,Math.round(h/120)));for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random()*2);const ys=[];for(let i=0;i<count;i++){let tries=0;while(tries<40){const y=40+Math.random()*(h-80);if(ys.every(yy=>Math.abs(yy-y)>=minGap)){const left=r.filter(x=>x.leftCol===p-1),right=r.filter(x=>x.leftCol===p+1);const near=[...left,...right].some(x=>Math.abs(x.y-y)<minGap*.7);if(!near){ys.push(y);r.push({leftCol:p,y});break}}tries++}}}return r.sort((a,b)=>a.y-b.y)}
-function tracePath(startCol,rungs,colXs,topY,bottomY){let col=startCol,y=topY;const pts=[[colXs[col],y]];for(const rung of rungs){if(rung.leftCol===col||rung.leftCol===col-1){const going=rung.y>y,isL=rung.leftCol===col,isR=rung.leftCol===col-1;if(going&&(isL||isR)){pts.push([colXs[col],rung.y]);col=isL?col+1:col-1;pts.push([colXs[col],rung.y]);y=rung.y}}}pts.push([colXs[col],bottomY]);return{points:pts,endCol:col}}
-function App(){const width=900,height=520,topY=40,bottomY=height-40;
+function generateRungs(n,h){const r=[];const minGap=28;const pairs=n-1;const base=Math.max(2,Math.min(7,Math.round(h/120)));
+  for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random() * 2);const ys=[];
+    for(let i=0;i<count;i++){let tries=0;while(tries<40){const y=40+Math.random()*(h-80);
+      if(ys.every(yy=>Math.abs(yy-y)>=minGap)){const left=r.filter(x=>x.leftCol===p-1),right=r.filter(x=>x.leftCol===p+1);
+        const near=[...left,...right].some(x=>Math.abs(x.y-y)<minGap*0.7);
+        if(!near){ys.push(y);r.push({leftCol:p,y});break}}tries++}}}}return r.sort((a,b)=>a.y-b.y)}
+function tracePath(startCol,rungs,colXs,topY,bottomY){let col=startCol,y=topY;const pts=[[colXs[col],y]];
+  for(const rung of rungs){if(rung.leftCol===col||rung.leftCol===col-1){const going=rung.y>y,isL=rung.leftCol===col,isR=rung.leftCol===col-1;
+    if(going&&(isL||isR)){pts.push([colXs[col],rung.y]);col=isL?col+1:col-1;pts.push([colXs[col],rung.y]);y=rung.y}}}
+  pts.push([colXs[col],bottomY]);return{points:pts,endCol:col}}
+function App(){const W=900,H=520,topY=40,bottomY=H-40;
   const [num,setNum]=React.useState(5);
   const [numInput,setNumInput]=React.useState('5');
   const [gen,setGen]=React.useState(false);
@@ -34,7 +64,7 @@ function App(){const width=900,height=520,topY=40,bottomY=height-40;
   const [rev,setRev]=React.useState(false);
   const [winTop,setWinTop]=React.useState(null);
 
-  const colXs=React.useMemo(()=>{const margin=80,usable=width-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num]);
+  const colXs=React.useMemo(()=>{const margin=80,usable=W-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num]);
 
   const commitClamp=(raw)=>{const parsed=parseInt(raw||'0',10); const v=clamp(Number.isFinite(parsed)?parsed:0,2,16); setNum(v); setNumInput(String(v));};
 
@@ -54,7 +84,7 @@ function App(){const width=900,height=520,topY=40,bottomY=height-40;
   const winnerName=React.useMemo(()=>winTop==null?'':(names[winTop]||`参加者${winTop+1}`),[winTop,names]);
 
   return(<div>
-    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-numfix-v2</span></h1>
+    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-responsive-v1</span></h1>
     <div className="row">
       <div>
         <label className="label">人数</label>
@@ -71,27 +101,30 @@ function App(){const width=900,height=520,topY=40,bottomY=height-40;
     {!gen&&<p className="muted">人数を入力して「生成」を押してください。各列の上で名前を入力できます。</p>}
 
     {gen&&(<div className="stage">
-      <div className="svg-wrap">
-        <svg width={900} height={520} style={{background:'#fff',borderRadius:12,border:'1px solid #e5e7eb'}}>
-          {colXs.map((x,i)=>(<line key={'v-'+i} x1={x} y1={40} x2={x} y2={480} stroke="#111" strokeWidth="2"/>))}
-          {rungs.map((r,idx)=>(<line key={'h-'+idx} x1={colXs[r.leftCol]} y1={r.y} x2={colXs[r.leftCol+1]} y2={r.y} stroke="#111" strokeWidth="3"/>))}
-          {rev&&winTop!=null&&(<>
-            <polyline points={all[winTop].points.map(p=>p.join(',')).join(' ')} fill="none" stroke="#ef4444" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round"/>
-            {winBottom!=null&&(<text x={colXs[winBottom]} y={480+24} textAnchor="middle" fontSize="12" fill="#ef4444">当たり</text>)}
-          </>)}
-          {colXs.map((x,i)=>(<text key={'t-'+i} x={x} y={30} textAnchor="middle" fontSize="12" fill="#111">{names[i]||`参加者${i+1}`}</text>))}
-        </svg>
-      </div>
-      <div className="top-inputs" aria-label="参加者名入力欄">
-        {colXs.map((_,i)=>(
-          <div key={i}>
-            <input type="text" aria-label={'参加者'+(i+1)+'の名前'} autoComplete="off" placeholder={'名前'+(i+1)} value={names[i]||''}
-              onChange={(e)=>{const v=e.target.value;setNames(prev=>{const next=[...prev];next[i]=v;return next;});}}/>
-          </div>
-        ))}
+      <div className="svg-holder">
+        <div className="svg-spacer"></div>
+        <div className="svg-abs">
+          <svg viewBox="0 0 900 520" preserveAspectRatio="xMidYMid meet">
+            {colXs.map((x,i)=>(<line key={'v-'+i} x1={x} y1={40} x2={x} y2={480} stroke="#111" strokeWidth="2"/>))}
+            {rungs.map((r,idx)=>(<line key={'h-'+idx} x1={colXs[r.leftCol]} y1={r.y} x2={colXs[r.leftCol+1]} y2={r.y} stroke="#111" strokeWidth="3"/>))}
+            {rev&&winTop!=null&&(<>
+              <polyline points={all[winTop].points.map(p=>p.join(',')).join(' ')} fill="none" stroke="#ef4444" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round"/>
+              {winBottom!=null&&(<text x={colXs[winBottom]} y={504} textAnchor="middle" fontSize="12" fill="#ef4444">当たり</text>)}
+            </>)}
+            {colXs.map((x,i)=>(<text key={'t-'+i} x={x} y={30} textAnchor="middle" fontSize="12" fill="#111">{names[i]||`参加者${i+1}`}</text>))}
+          </svg>
+        </div>
+        <div className="top-inputs" aria-label="参加者名入力欄">
+          {colXs.map((x,i)=>(
+            <div key={'n-'+i} className="name-wrap" style={{left:(x/900*100)+'%'}}>
+              <input type="text" aria-label={'参加者'+(i+1)+'の名前'} autoComplete="off" placeholder={'名前'+(i+1)}
+                value={names[i]||''} onChange={(e)=>{const v=e.target.value;setNames(prev=>{const next=[...prev];next[i]=v;return next;});}}/>
+            </div>
+          ))}
+        </div>
       </div>
     </div>)}
-    <div className="muted" style={{marginTop:10}}>初回はオンラインで読み込みます。ホーム画面に追加すればオフラインでも動作します。</div>
+    <div className="muted" style={{marginTop:10}}>ホーム画面に追加すればオフラインでも動作します。</div>
   </div>);
 }
 const root=ReactDOM.createRoot(document.getElementById('root'));root.render(<App/>);
