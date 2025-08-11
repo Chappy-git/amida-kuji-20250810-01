@@ -1,4 +1,4 @@
-const CACHE_NAME='amida-pages-v1';
+const CACHE_NAME='amida-pages-v3'; // bump to refresh cache
 const CORE=['./','./index.html','./manifest.json','./icons/icon-64.png','./icons/icon-128.png','./icons/icon-192.png','./icons/icon-256.png','./icons/icon-384.png','./icons/icon-512.png','https://unpkg.com/react@18/umd/react.production.min.js','https://unpkg.com/react-dom@18/umd/react-dom.production.min.js','https://unpkg.com/@babel/standalone/babel.min.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(CORE)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));self.clients.claim();});

@@ -13,6 +13,7 @@ input[type=text]{width:140px}.btn{border:0;padding:10px 14px;border-radius:12px;
 .btn-primary{background:#111827;color:#fff}.btn-primary:hover{opacity:.9}.btn-blue{background:#2563eb;color:#fff}.btn-blue:disabled{opacity:.5;cursor:not-allowed}
 .muted{color:#64748b;font-size:12px}.stage{position:relative;margin-top:24px}.top-inputs{position:absolute;left:0;right:0;top:8px;display:flex;justify-content:space-between;padding:0 16px;z-index:3;gap:8px}
 .top-inputs>div{width:120px;transform:translateX(-50%)}.top-inputs input{background:#fff;width:120px}.svg-wrap{position:relative;overflow:auto;z-index:1;margin-top:56px}.win-label{font-weight:700;margin-left:8px}
+.version{color:#94a3b8;font-size:11px;margin-left:8px}
 @media (max-width:600px){.container{margin:0 auto;padding:8px}.top-inputs{top:6px;padding:0 8px}.top-inputs>div{width:100px}.top-inputs input{width:100px;padding:8px 10px}.svg-wrap{margin-top:50px}.h1{font-size:20px}}
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -24,8 +25,8 @@ const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 function generateRungs(n,h){const r=[];const minGap=28;const pairs=n-1;const base=Math.max(2,Math.min(7,Math.round(h/120)));for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random()*2);const ys=[];for(let i=0;i<count;i++){let tries=0;while(tries<40){const y=40+Math.random()*(h-80);if(ys.every(yy=>Math.abs(yy-y)>=minGap)){const left=r.filter(x=>x.leftCol===p-1),right=r.filter(x=>x.leftCol===p+1);const near=[...left,...right].some(x=>Math.abs(x.y-y)<minGap*.7);if(!near){ys.push(y);r.push({leftCol:p,y});break}}tries++}}}return r.sort((a,b)=>a.y-b.y)}
 function tracePath(startCol,rungs,colXs,topY,bottomY){let col=startCol,y=topY;const pts=[[colXs[col],y]];for(const rung of rungs){if(rung.leftCol===col||rung.leftCol===col-1){const going=rung.y>y,isL=rung.leftCol===col,isR=rung.leftCol===col-1;if(going&&(isL||isR)){pts.push([colXs[col],rung.y]);col=isL?col+1:col-1;pts.push([colXs[col],rung.y]);y=rung.y}}}pts.push([colXs[col],bottomY]);return{points:pts,endCol:col}}
 function App(){const width=900,height=520,topY=40,bottomY=height-40;
-  const [num,setNum]=React.useState(5);          // number (実際に使う値)
-  const [numInput,setNumInput]=React.useState('5'); // string (入力欄表示用)
+  const [num,setNum]=React.useState(5);
+  const [numInput,setNumInput]=React.useState('5');
   const [gen,setGen]=React.useState(false);
   const [names,setNames]=React.useState([]);
   const [rungs,setRungs]=React.useState([]);
@@ -35,11 +36,10 @@ function App(){const width=900,height=520,topY=40,bottomY=height-40;
 
   const colXs=React.useMemo(()=>{const margin=80,usable=width-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num]);
 
-  const commitClamp=(raw)=>{const v=clamp(parseInt(raw||'0',10)||0,2,16); setNum(v); setNumInput(String(v));};
+  const commitClamp=(raw)=>{const parsed=parseInt(raw||'0',10); const v=clamp(Number.isFinite(parsed)?parsed:0,2,16); setNum(v); setNumInput(String(v));};
 
-  const handleGen=()=>{
-    commitClamp(numInput);
-    const n = clamp(parseInt(numInput||'0',10)||0,2,16);
+  const handleGen=()=>{commitClamp(numInput);
+    const parsed=parseInt(numInput||'0',10); const n=clamp(Number.isFinite(parsed)?parsed:0,2,16);
     const rs=generateRungs(n,bottomY-topY);
     const win=Math.floor(Math.random()*n);
     setRungs(rs); setWinBottom(win); setRev(false); setWinTop(null); setGen(true);
@@ -48,26 +48,18 @@ function App(){const width=900,height=520,topY=40,bottomY=height-40;
 
   const all=React.useMemo(()=>!gen?[]:colXs.map((_,i)=>tracePath(i,rungs,colXs,topY,bottomY)),[gen,rungs,colXs]);
 
-  const reveal=()=>{
-    if(!gen||winBottom==null)return;
-    const idx=all.findIndex(p=>p.endCol===winBottom);
-    setWinTop(idx>=0?idx:null);
-    setRev(true);
-    setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);
-  };
+  const reveal=()=>{if(!gen||winBottom==null)return; const idx=all.findIndex(p=>p.endCol===winBottom);
+    setWinTop(idx>=0?idx:null); setRev(true); setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);};
 
   const winnerName=React.useMemo(()=>winTop==null?'':(names[winTop]||`参加者${winTop+1}`),[winTop,names]);
 
   return(<div>
-    <h1 className="h1">あみだくじ</h1>
+    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-numfix-v2</span></h1>
     <div className="row">
       <div>
         <label className="label">人数</label>
         <input type="tel" inputMode="numeric" pattern="[0-9]*" value={numInput}
-          onChange={(e)=>{
-            const onlyDigits=(e.target.value||'').replace(/\D/g,'');
-            setNumInput(onlyDigits);
-          }}
+          onChange={(e)=>{ const only=(e.target.value||'').replace(/\D/g,''); setNumInput(only);}}
           onBlur={()=>commitClamp(numInput)}
           placeholder="2〜16" />
       </div>
