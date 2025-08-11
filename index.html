@@ -1,141 +1,316 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>あみだくじ</title><meta name="theme-color" content="#111827"/>
-<link rel="manifest" href="manifest.json"/><link rel="icon" sizes="192x192" href="icons/icon-192.png"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/><meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>あみだくじ</title>
+<meta name="theme-color" content="#111827" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-html,body{margin:0;padding:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,Helvetica,Arial,sans-serif;overflow-x:hidden}
-.container{max-width:1000px;margin:24px auto;padding:16px}
-.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:16px;overflow:hidden}
-.h1{font-size:22px;font-weight:800;margin:0 0 12px;letter-spacing:.02em}
-.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
-.label{font-size:12px;margin-bottom:4px;display:block;color:#334155}
-input[type=tel],input[type=text]{border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;outline:none;font-size:16px}
-input[type=text]{width:140px}
-.btn{border:0;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer;font-size:16px}
-.btn-primary{background:#111827;color:#fff} .btn-primary:hover{opacity:.9}
-.btn-blue{background:#2563eb;color:#fff} .btn-blue:disabled{opacity:.5;cursor:not-allowed}
-.muted{color:#64748b;font-size:12px}
-.stage{margin-top:16px}
+html, body { margin:0; padding:0; background:#f8fafc; color:#0f172a; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, Helvetica, Arial, sans-serif; overflow-x:hidden; }
+.container { max-width:1000px; margin:24px auto; padding:16px; }
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.05); padding:16px; overflow:hidden; }
+.h1 { font-size:22px; font-weight:800; margin:0 0 12px; letter-spacing:.02em; }
+.row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:12px; }
+.label { font-size:12px; margin-bottom:4px; display:block; color:#334155; }
+input[type=tel], input[type=text] { border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; outline:none; font-size:16px; }
+input[type=text] { width:140px; }
+.btn { border:0; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; font-size:16px; }
+.btn-primary { background:#111827; color:#fff; } .btn-primary:hover { opacity:.9; }
+.btn-blue { background:#2563eb; color:#fff; } .btn-blue:disabled { opacity:.5; cursor:not-allowed; }
+.muted { color:#64748b; font-size:12px; }
+.stage { margin-top:16px; }
 
-/* Responsive SVG holder */
-.svg-holder{position:relative;width:100%;max-width:100%;}
-.svg-spacer{width:100%;padding-top:57.7777%;} /* 520/900*100 */
-.svg-abs{position:absolute;inset:0;}
-svg{display:block;width:100%;height:100%}
+/* Responsive SVG holder (keeps 900x520 ratio) */
+.svg-holder{ position:relative; width:100%; max-width:100%; }
+.svg-spacer{ width:100%; padding-top:57.7777%; } /* 520/900*100 */
+.svg-abs{ position:absolute; inset:0; }
+svg{ display:block; width:100%; height:100%; }
 
-/* Inputs overlay */
-.top-inputs{position:absolute;left:0;right:0;top:6px;z-index:3;pointer-events:none;}
-.top-inputs .name-wrap{position:absolute;transform:translateX(-50%);}
-.top-inputs input{background:#fff;width:100%;pointer-events:auto;}
+/* Name inputs overlay */
+.top-inputs{ position:absolute; left:0; right:0; top:6px; z-index:3; pointer-events:none; }
+.top-inputs .name-wrap{ position:absolute; transform:translateX(-50%); }
+.top-inputs input{ background:#fff; width:100%; pointer-events:auto; }
 
-/* Small screens */
-@media (max-width:600px){
-  .container{margin:0 auto;padding:8px}
-  .h1{font-size:20px}
+@media (max-width:600px) {
+  .container { margin:0 auto; padding:8px; }
+  .h1 { font-size:20px; }
 }
-.version{color:#94a3b8;font-size:11px;margin-left:8px}
+.version{ color:#94a3b8; font-size:11px; margin-left:8px; }
 </style>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head><body><div class="container"><div id="root" class="card"></div></div>
-<script type="text/babel">
-const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-function generateRungs(n,h){const r=[];const minGap=28;const pairs=n-1;const base=Math.max(2,Math.min(7,Math.round(h/120)));
-  for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random()*2);const ys=[];
-    for(let i=0;i<count;i++){let tries=0;while(tries<40){const y=40+Math.random()*(h-80);
-      if(ys.every(yy=>Math.abs(yy-y)>=minGap)){const left=r.filter(x=>x.leftCol===p-1),right=r.filter(x=>x.leftCol===p+1);
-        const near=[...left,...right].some(x=>Math.abs(x.y-y)<minGap*0.7);
-        if(!near){ys.push(y);r.push({leftCol:p,y});break}}tries++}}}}return r.sort((a,b)=>a.y-b.y)}
-function tracePath(startCol,rungs,colXs,topY,bottomY){let col=startCol,y=topY;const pts=[[colXs[col],y]];
-  for(const rung of rungs){if(rung.leftCol===col||rung.leftCol===col-1){const going=rung.y>y,isL=rung.leftCol===col,isR=rung.leftCol===col-1;
-    if(going&&(isL||isR)){pts.push([colXs[col],rung.y]);col=isL?col+1:col-1;pts.push([colXs[col],rung.y]);y=rung.y}}}
-  pts.push([colXs[col],bottomY]);return{points:pts,endCol:col}}
-function App(){const W=900,H=520,topY=40,bottomY=H-40;
-  const [num,setNum]=React.useState(5);
-  const [numInput,setNumInput]=React.useState('5');
-  const [gen,setGen]=React.useState(false);
-  const [names,setNames]=React.useState([]);
-  const [rungs,setRungs]=React.useState([]);
-  const [winBottom,setWinBottom]=React.useState(null);
-  const [rev,setRev]=React.useState(false);
-  const [winTop,setWinTop]=React.useState(null);
-
-  const margin=window.innerWidth<600?60:80;
-  const colXs=React.useMemo(()=>{const usable=W-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num,margin]);
-
-  const commitClamp=(raw)=>{const parsed=parseInt(raw||'0',10); const v=clamp(Number.isFinite(parsed)?parsed:0,2,16); setNum(v); setNumInput(String(v));};
-
-  const handleGen=()=>{commitClamp(numInput);
-    const parsed=parseInt(numInput||'0',10); const n=clamp(Number.isFinite(parsed)?parsed:0,2,16);
-    const rs=generateRungs(n,bottomY-topY);
-    const win=Math.floor(Math.random()*n);
-    setRungs(rs); setWinBottom(win); setRev(false); setWinTop(null); setGen(true);
-    setNames(prev=>{const next=[...prev];next.length=n;for(let i=0;i<n;i++)if(next[i]==null)next[i]='';return next;});
-  };
-
-  const all=React.useMemo(()=>!gen?[]:colXs.map((_,i)=>tracePath(i,rungs,colXs,topY,bottomY)),[gen,rungs,colXs]);
-
-  const reveal=()=>{if(!gen||winBottom==null)return; const idx=all.findIndex(p=>p.endCol===winBottom);
-    setWinTop(idx>=0?idx:null); setRev(true); setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);};
-
-  const winnerName=React.useMemo(()=>winTop==null?'':(names[winTop]||`参加者${winTop+1}`),[winTop,names]);
-
-  // Name input width in vw (depends on number of players): 14–22vw clamped
-  const nameWidthVw = clamp( Math.round((100/num)*0.7), 14, 22 );
-  const leftClampMin = nameWidthVw/2 + 2;
-  const leftClampMax = 100 - nameWidthVw/2 - 2;
-
-  return(<div>
-    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-responsive-v2</span></h1>
-    <div className="row">
-      <div>
-        <label className="label">人数</label>
-        <input type="tel" inputMode="numeric" pattern="[0-9]*" value={numInput}
-          onChange={(e)=>{ const only=(e.target.value||'').replace(/\D/g,''); setNumInput(only);}}
-          onBlur={()=>commitClamp(numInput)}
-          placeholder="2〜16" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla</span></h1>
+      <div class="row">
+        <div>
+          <label class="label">人数</label>
+          <input id="numInput" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="2〜16" value="5" />
+        </div>
+        <button id="genBtn" class="btn btn-primary">生成</button>
+        <button id="revealBtn" class="btn btn-blue" disabled>結果発表</button>
+        <span id="winLabel" class="version" style="display:none;"></span>
       </div>
-      <button className="btn btn-primary" onClick={handleGen}>生成</button>
-      <button className="btn btn-blue" onClick={reveal} disabled={!gen||rev}>結果発表</button>
-      {rev&&winTop!=null&&(<span className="win-label">当たり：{winnerName}</span>)}
+
+      <p id="hint" class="muted">人数を入力して「生成」を押してください。各列の上で名前を入力できます。</p>
+
+      <div class="stage">
+        <div class="svg-holder">
+          <div class="svg-spacer"></div>
+          <div class="svg-abs">
+            <svg id="svg" viewBox="0 0 900 520" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div id="topInputs" class="top-inputs" aria-label="参加者名入力欄"></div>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px;">ホーム画面に追加すればオフラインでも動作します。</div>
     </div>
+  </div>
 
-    {!gen&&<p className="muted">人数を入力して「生成」を押してください。各列の上で名前を入力できます。</p>}
+<script>
+(function(){
+  'use strict';
+  const W=900,H=520, topY=40, bottomY=H-40;
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
-    {gen&&(<div className="stage">
-      <div className="svg-holder">
-        <div className="svg-spacer"></div>
-        <div className="svg-abs">
-          <svg viewBox="0 0 900 520" preserveAspectRatio="xMidYMid meet">
-            {colXs.map((x,i)=>(<line key={'v-'+i} x1={x} y1={40} x2={x} y2={480} stroke="#111" strokeWidth="2"/>))}
-            {rungs.map((r,idx)=>(<line key={'h-'+idx} x1={colXs[r.leftCol]} y1={r.y} x2={colXs[r.leftCol+1]} y2={r.y} stroke="#111" strokeWidth="3"/>))}
-            {rev&&winTop!=null&&(<>
-              <polyline points={all[winTop].points.map(p=>p.join(',')).join(' ')} fill="none" stroke="#ef4444" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round"/>
-              {winBottom!=null&&(<text x={colXs[winBottom]} y={504} textAnchor="middle" fontSize="12" fill="#ef4444">当たり</text>)}
-            </>)}
-            {colXs.map((x,i)=>(<text key={'t-'+i} x={x} y={30} textAnchor="middle" fontSize="12" fill="#111">{names[i]||`参加者${i+1}`}</text>))}
-          </svg>
-        </div>
-        <div className="top-inputs" aria-label="参加者名入力欄">
-          {colXs.map((x,i)=>{
-            const leftPctRaw = x/900*100;
-            const leftPct = clamp(leftPctRaw, leftClampMin, leftClampMax);
-            return (
-              <div key={'n-'+i} className="name-wrap" style={{left: leftPct + '%', width: nameWidthVw + 'vw'}}>
-                <input type="text" aria-label={'参加者'+(i+1)+'の名前'} autoComplete="off" placeholder={'名前'+(i+1)}
-                  value={names[i]||''} onChange={(e)=>{const v=e.target.value;setNames(prev=>{const next=[...prev];next[i]=v;return next;});}}/>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>)}
-    <div className="muted" style={{marginTop:10}}>ホーム画面に追加すればオフラインでも動作します。</div>
-  </div>);
-}
-const root=ReactDOM.createRoot(document.getElementById('root'));root.render(<App/>);
-if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js');});}
-</script></body></html>
+  // State
+  let num=5;
+  let numInputStr='5';
+  let generated=false;
+  let names=[];
+  let rungs=[];
+  let winBottom=null;
+  let revealed=false;
+  let winnerTop=null;
+
+  // Elements
+  const numInputEl = document.getElementById('numInput');
+  const genBtn = document.getElementById('genBtn');
+  const revealBtn = document.getElementById('revealBtn');
+  const winLabel = document.getElementById('winLabel');
+  const svg = document.getElementById('svg');
+  const topInputs = document.getElementById('topInputs');
+  const hint = document.getElementById('hint');
+
+  // Numeric input handling
+  numInputEl.addEventListener('input', (e)=>{
+    const only=(e.target.value||'').replace(/\D/g,'');
+    numInputStr = only;
+    numInputEl.value = only;
+  });
+  numInputEl.addEventListener('blur', ()=>{
+    commitClamp();
+  });
+
+  function commitClamp(){
+    const parsed = parseInt(numInputStr||'0',10);
+    const v = clamp(Number.isFinite(parsed)?parsed:0,2,16);
+    num = v;
+    numInputStr = String(v);
+    numInputEl.value = numInputStr;
+  }
+
+  function generateRungs(numPlayers, height){
+    const out=[];
+    const minGap=28;
+    const pairs=numPlayers-1;
+    const baseCount = clamp(Math.round(height/120), 2, 7);
+    for(let p=0;p<pairs;p++){
+      const count = baseCount + Math.floor(Math.random()*2);
+      const ys=[];
+      for(let i=0;i<count;i++){
+        let tries=0;
+        while(tries<40){
+          const y = topY + Math.random()*(height- (topY*2 - (H-height)));
+          if(ys.every(yy=>Math.abs(yy-y)>=minGap)){
+            const neighborLeft  = out.filter(r=>r.leftCol===p-1);
+            const neighborRight = out.filter(r=>r.leftCol===p+1);
+            const nearNeighbor = [...neighborLeft, ...neighborRight].some(r=>Math.abs(r.y-y) < minGap*0.7);
+            if(!nearNeighbor){ ys.push(y); out.push({leftCol:p, y}); break; }
+          }
+          tries++;
+        }
+      }
+    }
+    out.sort((a,b)=>a.y-b.y);
+    return out;
+  }
+
+  function tracePath(startCol, rungs, colXs){
+    let col = startCol;
+    let y = topY;
+    const pts = [[colXs[col], y]];
+    for(const rung of rungs){
+      if(rung.leftCol===col || rung.leftCol===col-1){
+        const goingDown = rung.y > y;
+        const isOnLeft = rung.leftCol===col;
+        const isOnRight = rung.leftCol===col-1;
+        if(goingDown && (isOnLeft || isOnRight)){
+          pts.push([colXs[col], rung.y]);
+          col = isOnLeft ? col+1 : col-1;
+          pts.push([colXs[col], rung.y]);
+          y = rung.y;
+        }
+      }
+    }
+    pts.push([colXs[col], bottomY]);
+    return { points: pts, endCol: col };
+  }
+
+  function getMargin(){
+    return (window.innerWidth < 600) ? 60 : 80;
+  }
+  function getColXs(n){
+    const margin = getMargin();
+    const usable = W - margin*2;
+    const gap = n>1 ? usable/(n-1) : 0;
+    return Array.from({length:n}, (_,i)=> margin + i*gap);
+  }
+
+  function clearSvg(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+  }
+
+  function render(){
+    clearSvg();
+    const colXs = getColXs(num);
+
+    // vertical lines
+    for(let i=0;i<colXs.length;i++){
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', colXs[i]); line.setAttribute('y1', topY);
+      line.setAttribute('x2', colXs[i]); line.setAttribute('y2', bottomY);
+      line.setAttribute('stroke', '#111'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    // rungs
+    for(let i=0;i<rungs.length;i++){
+      const r = rungs[i];
+      const hline = document.createElementNS('http://www.w3.org/2000/svg','line');
+      hline.setAttribute('x1', colXs[r.leftCol]); hline.setAttribute('y1', r.y);
+      hline.setAttribute('x2', colXs[r.leftCol+1]); hline.setAttribute('y2', r.y);
+      hline.setAttribute('stroke', '#111'); hline.setAttribute('stroke-width','3');
+      svg.appendChild(hline);
+    }
+    // names (top)
+    for(let i=0;i<colXs.length;i++){
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x', colXs[i]); t.setAttribute('y', 30); t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','12'); t.setAttribute('fill','#111');
+      t.textContent = names[i] || `参加者${i+1}`;
+      svg.appendChild(t);
+    }
+    // winner path
+    if(revealed && winnerTop!=null){
+      const allPaths = colXs.map((_,i)=> tracePath(i, rungs, colXs));
+      const info = allPaths[winnerTop];
+      const pts = info.points.map(p=>p.join(',')).join(' ');
+      const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      poly.setAttribute('points', pts); poly.setAttribute('fill','none');
+      poly.setAttribute('stroke','#ef4444'); poly.setAttribute('stroke-width','5');
+      poly.setAttribute('stroke-linejoin','round'); poly.setAttribute('stroke-linecap','round');
+      svg.appendChild(poly);
+
+      if(winBottom!=null){
+        const bt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        bt.setAttribute('x', colXs[winBottom]); bt.setAttribute('y', bottomY + 24);
+        bt.setAttribute('text-anchor','middle'); bt.setAttribute('font-size','12'); bt.setAttribute('fill','#ef4444');
+        bt.textContent = '当たり';
+        svg.appendChild(bt);
+      }
+    }
+
+    // overlay name inputs (position by %; clamp to container)
+    topInputs.innerHTML = '';
+    const nameWidthVw = clamp(Math.round((100/num)*0.7), 14, 22);
+    const leftClampMin = nameWidthVw/2 + 2;
+    const leftClampMax = 100 - nameWidthVw/2 - 2;
+    for(let i=0;i<colXs.length;i++){
+      const x = colXs[i];
+      const leftPctRaw = x / W * 100;
+      const leftPct = clamp(leftPctRaw, leftClampMin, leftClampMax);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'name-wrap';
+      wrap.style.left = leftPct + '%';
+      wrap.style.width = nameWidthVw + 'vw';
+
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.autocomplete = 'off';
+      inp.placeholder = '名前' + (i+1);
+      inp.setAttribute('aria-label', '参加者'+(i+1)+'の名前');
+      inp.value = names[i] || '';
+      inp.addEventListener('input', (e)=>{
+        names[i] = e.target.value;
+        // update label text immediately
+        // (simple: re-render names only)
+        renderNamesOnly();
+      });
+
+      wrap.appendChild(inp);
+      topInputs.appendChild(wrap);
+    }
+  }
+
+  function renderNamesOnly(){
+    // update the <text> labels without regenerating everything
+    // (simplify by full render for safety)
+    const saved = {rungs, revealed, winnerTop, winBottom, names: [...names], num};
+    render();
+  }
+
+  function onGenerate(){
+    commitClamp();
+    if(num < 2){ alert('人数は2人以上にしてください。'); return; }
+    // init names array length
+    names.length = num;
+    for(let i=0;i<num;i++){ if(names[i]==null) names[i] = ''; }
+    rungs = generateRungs(num, bottomY - topY);
+    winBottom = Math.floor(Math.random() * num);
+    revealed = false; winnerTop = null;
+    generated = true;
+    revealBtn.disabled = false;
+    hint.style.display = 'none';
+    winLabel.style.display = 'none';
+    render();
+  }
+
+  function onReveal(){
+    if(!generated || winBottom==null) return;
+    const colXs = getColXs(num);
+    const all = colXs.map((_,i)=> tracePath(i, rungs, colXs));
+    const idx = all.findIndex(p=>p.endCol === winBottom);
+    winnerTop = (idx>=0 ? idx : null);
+    revealed = true;
+    const winnerName = (winnerTop!=null ? (names[winnerTop] || ('参加者'+(winnerTop+1))) : '');
+    winLabel.textContent = winnerName ? ('当たり：' + winnerName) : '当たり';
+    winLabel.style.display = 'inline';
+    revealBtn.disabled = true;
+    render();
+    setTimeout(()=>{ window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' }); }, 30);
+  }
+
+  genBtn.addEventListener('click', onGenerate);
+  revealBtn.addEventListener('click', onReveal);
+  window.addEventListener('resize', ()=>{ if(generated) render(); });
+
+  // initial render (empty)
+  render();
+
+  // SW
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+})();
+</script>
+</body>
+</html>
