@@ -46,7 +46,7 @@ svg{ display:block; width:100%; height:100%; }
 <body>
   <div class="container">
     <div class="card">
-      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla</span></h1>
+      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla2</span></h1>
       <div class="row">
         <div>
           <label class="label">人数</label>
@@ -69,7 +69,7 @@ svg{ display:block; width:100%; height:100%; }
         </div>
       </div>
 
-      <div class="muted" style="margin-top:10px;">ホーム画面に追加すればオフラインでも動作します。</div>
+      <div class="muted" style="margin-top:10px;">右上の「三」メニューから <a href="./reset.html">キャッシュを初期化</a> できます。</div>
     </div>
   </div>
 
@@ -104,9 +104,7 @@ svg{ display:block; width:100%; height:100%; }
     numInputStr = only;
     numInputEl.value = only;
   });
-  numInputEl.addEventListener('blur', ()=>{
-    commitClamp();
-  });
+  numInputEl.addEventListener('blur', ()=>{ commitClamp(); });
 
   function commitClamp(){
     const parsed = parseInt(numInputStr||'0',10);
@@ -127,7 +125,7 @@ svg{ display:block; width:100%; height:100%; }
       for(let i=0;i<count;i++){
         let tries=0;
         while(tries<40){
-          const y = topY + Math.random()*(height- (topY*2 - (H-height)));
+          const y = topY + Math.random()*(height - 80) + 40; // 40..height-40 within ladder
           if(ys.every(yy=>Math.abs(yy-y)>=minGap)){
             const neighborLeft  = out.filter(r=>r.leftCol===p-1);
             const neighborRight = out.filter(r=>r.leftCol===p+1);
@@ -164,7 +162,7 @@ svg{ display:block; width:100%; height:100%; }
   }
 
   function getMargin(){
-    return (window.innerWidth < 600) ? 60 : 80;
+    return (window.innerWidth < 600) ? 40 : 80; // tighter on mobile
   }
   function getColXs(n){
     const margin = getMargin();
@@ -226,9 +224,10 @@ svg{ display:block; width:100%; height:100%; }
       }
     }
 
-    // overlay name inputs (position by %; clamp to container)
+    // overlay name inputs
     topInputs.innerHTML = '';
-    const nameWidthVw = clamp(Math.round((100/num)*0.7), 14, 22);
+    // width based on number of players, clamped
+    const nameWidthVw = clamp(Math.round((100/num)*0.7), 12, 22);
     const leftClampMin = nameWidthVw/2 + 2;
     const leftClampMax = 100 - nameWidthVw/2 - 2;
     for(let i=0;i<colXs.length;i++){
@@ -249,9 +248,7 @@ svg{ display:block; width:100%; height:100%; }
       inp.value = names[i] || '';
       inp.addEventListener('input', (e)=>{
         names[i] = e.target.value;
-        // update label text immediately
-        // (simple: re-render names only)
-        renderNamesOnly();
+        render(); // keep simple and robust
       });
 
       wrap.appendChild(inp);
@@ -259,17 +256,9 @@ svg{ display:block; width:100%; height:100%; }
     }
   }
 
-  function renderNamesOnly(){
-    // update the <text> labels without regenerating everything
-    // (simplify by full render for safety)
-    const saved = {rungs, revealed, winnerTop, winBottom, names: [...names], num};
-    render();
-  }
-
   function onGenerate(){
     commitClamp();
     if(num < 2){ alert('人数は2人以上にしてください。'); return; }
-    // init names array length
     names.length = num;
     for(let i=0;i<num;i++){ if(names[i]==null) names[i] = ''; }
     rungs = generateRungs(num, bottomY - topY);
@@ -297,11 +286,11 @@ svg{ display:block; width:100%; height:100%; }
     setTimeout(()=>{ window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' }); }, 30);
   }
 
-  genBtn.addEventListener('click', onGenerate);
-  revealBtn.addEventListener('click', onReveal);
+  document.getElementById('genBtn').addEventListener('click', onGenerate);
+  document.getElementById('revealBtn').addEventListener('click', onReveal);
   window.addEventListener('resize', ()=>{ if(generated) render(); });
 
-  // initial render (empty)
+  // initial render (empty scaffold)
   render();
 
   // SW
