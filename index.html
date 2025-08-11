@@ -46,7 +46,7 @@ svg{ display:block; width:100%; height:100%; }
 <body>
   <div class="container">
     <div class="card">
-      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla4</span></h1>
+      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla5</span></h1>
       <div class="row">
         <div>
           <label class="label">人数</label>
@@ -69,14 +69,14 @@ svg{ display:block; width:100%; height:100%; }
         </div>
       </div>
 
-      <div class="muted" style="margin-top:10px;">最新版でない場合は末尾に <code>?v=vanilla4</code> を付けてリロードしてください。</div>
+      <div class="muted" style="margin-top:10px;">最新版でない場合は末尾に <code>?v=vanilla5</code> を付けてリロードしてください。</div>
     </div>
   </div>
 
 <script>
 (function(){
   'use strict';
-  const W=900,H=520, topY=100, bottomY=H-40; // さらに余白を広く
+  const W=900,H=520, topY=100, bottomY=H-40;
   const nameTextY = 42;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
@@ -125,7 +125,7 @@ svg{ display:block; width:100%; height:100%; }
       for(let i=0;i<count;i++){
         let tries=0;
         while(tries<40){
-          const y = topY + 10 + Math.random()*(height - 20); // within [topY+10, bottomY-10]
+          const y = topY + 10 + Math.random()*(height - 20);
           if(ys.every(yy=>Math.abs(yy-y)>=minGap)){
             const neighborLeft  = out.filter(r=>r.leftCol===p-1);
             const neighborRight = out.filter(r=>r.leftCol===p+1);
@@ -260,8 +260,7 @@ svg{ display:block; width:100%; height:100%; }
   function onGenerate(){
     commitClamp();
     if(num < 2){ alert('人数は2人以上にしてください。'); return; }
-    // Always clear names on new generation
-    names = Array(num).fill('');
+    names = Array(num).fill(''); // fresh start
     rungs = generateRungs(num, bottomY - topY);
     winBottom = Math.floor(Math.random() * num);
     revealed = false; winnerTop = null;
