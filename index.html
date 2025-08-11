@@ -46,7 +46,7 @@ svg{ display:block; width:100%; height:100%; }
 <body>
   <div class="container">
     <div class="card">
-      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla2</span></h1>
+      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla3</span></h1>
       <div class="row">
         <div>
           <label class="label">人数</label>
@@ -69,14 +69,15 @@ svg{ display:block; width:100%; height:100%; }
         </div>
       </div>
 
-      <div class="muted" style="margin-top:10px;">右上の「三」メニューから <a href="./reset.html">キャッシュを初期化</a> できます。</div>
+      <div class="muted" style="margin-top:10px;">キャッシュが古い場合はURL末尾に <code>?v=vanilla3</code> を付けてリロードしてください。</div>
     </div>
   </div>
 
 <script>
 (function(){
   'use strict';
-  const W=900,H=520, topY=40, bottomY=H-40;
+  const W=900,H=520, topY=60, bottomY=H-40; // 増やしたギャップ
+  const nameTextY = 36;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   // State
@@ -125,7 +126,7 @@ svg{ display:block; width:100%; height:100%; }
       for(let i=0;i<count;i++){
         let tries=0;
         while(tries<40){
-          const y = topY + Math.random()*(height - 80) + 40; // 40..height-40 within ladder
+          const y = topY + Math.random()*(height - 80) + 40;
           if(ys.every(yy=>Math.abs(yy-y)>=minGap)){
             const neighborLeft  = out.filter(r=>r.leftCol===p-1);
             const neighborRight = out.filter(r=>r.leftCol===p+1);
@@ -162,7 +163,7 @@ svg{ display:block; width:100%; height:100%; }
   }
 
   function getMargin(){
-    return (window.innerWidth < 600) ? 40 : 80; // tighter on mobile
+    return (window.innerWidth < 600) ? 40 : 80;
   }
   function getColXs(n){
     const margin = getMargin();
@@ -196,11 +197,12 @@ svg{ display:block; width:100%; height:100%; }
       hline.setAttribute('stroke', '#111'); hline.setAttribute('stroke-width','3');
       svg.appendChild(hline);
     }
-    // names (top)
+    // names (top) with IDs so we can update text only
     for(let i=0;i<colXs.length;i++){
       const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x', colXs[i]); t.setAttribute('y', 30); t.setAttribute('text-anchor','middle');
+      t.setAttribute('x', colXs[i]); t.setAttribute('y', nameTextY); t.setAttribute('text-anchor','middle');
       t.setAttribute('font-size','12'); t.setAttribute('fill','#111');
+      t.setAttribute('id', 'nameLabel-'+i);
       t.textContent = names[i] || `参加者${i+1}`;
       svg.appendChild(t);
     }
@@ -224,9 +226,8 @@ svg{ display:block; width:100%; height:100%; }
       }
     }
 
-    // overlay name inputs
+    // overlay name inputs (no full re-render on input)
     topInputs.innerHTML = '';
-    // width based on number of players, clamped
     const nameWidthVw = clamp(Math.round((100/num)*0.7), 12, 22);
     const leftClampMin = nameWidthVw/2 + 2;
     const leftClampMax = 100 - nameWidthVw/2 - 2;
@@ -248,7 +249,8 @@ svg{ display:block; width:100%; height:100%; }
       inp.value = names[i] || '';
       inp.addEventListener('input', (e)=>{
         names[i] = e.target.value;
-        render(); // keep simple and robust
+        const label = document.getElementById('nameLabel-'+i);
+        if(label){ label.textContent = names[i] || ('参加者'+(i+1)); }
       });
 
       wrap.appendChild(inp);
@@ -290,14 +292,10 @@ svg{ display:block; width:100%; height:100%; }
   document.getElementById('revealBtn').addEventListener('click', onReveal);
   window.addEventListener('resize', ()=>{ if(generated) render(); });
 
-  // initial render (empty scaffold)
   render();
 
-  // SW
   if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>{
-      navigator.serviceWorker.register('sw.js');
-    });
+    window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js'); });
   }
 })();
 </script>
