@@ -1,4 +1,4 @@
-const CACHE_NAME='amida-pages-v10';
+const CACHE_NAME='amida-pages-v11';
 const CORE=['./','./index.html','./manifest.json','./reset.html','./icons/icon-64.png','./icons/icon-128.png','./icons/icon-192.png','./icons/icon-256.png','./icons/icon-384.png','./icons/icon-512.png'];
 
 self.addEventListener('install',e=>{
@@ -17,16 +17,13 @@ self.addEventListener('fetch',e=>{
   const isHTML = req.mode==='navigate' || accept.includes('text/html');
 
   if(isHTML){
-    // Network-first for pages to avoid stale HTML
     e.respondWith(fetch(req).then(res=>{
-      const copy=res.clone();
-      caches.open(CACHE_NAME).then(c=>c.put(req,copy)).catch(()=>{});
+      const copy=res.clone(); caches.open(CACHE_NAME).then(c=>c.put(req,copy)).catch(()=>{});
       return res;
     }).catch(()=>caches.match(req).then(hit=>hit||caches.match('./index.html'))));
     return;
   }
 
-  // cache-first for assets
   e.respondWith(caches.match(req).then(hit=> hit || fetch(req).then(res=>{
     const copy=res.clone(); caches.open(CACHE_NAME).then(c=>c.put(req,copy)).catch(()=>{});
     return res;

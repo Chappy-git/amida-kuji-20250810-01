@@ -1,7 +1,7 @@
 {
   "name": "あみだくじ",
   "short_name": "あみだ",
-  "description": "人数から自動生成・名前入力・結果発表で当たりを赤で表示するあみだくじ（バニラJS・安定版）",
+  "description": "人数から自動生成・名前入力・結果発表で当たりを赤で表示するあみだくじ（バニラJS・間隔調整版）",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

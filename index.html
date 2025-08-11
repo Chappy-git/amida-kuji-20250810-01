@@ -46,7 +46,7 @@ svg{ display:block; width:100%; height:100%; }
 <body>
   <div class="container">
     <div class="card">
-      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla5</span></h1>
+      <h1 class="h1">あみだくじ <span class="version">v 2025-08-11-vanilla6</span></h1>
       <div class="row">
         <div>
           <label class="label">人数</label>
@@ -69,15 +69,15 @@ svg{ display:block; width:100%; height:100%; }
         </div>
       </div>
 
-      <div class="muted" style="margin-top:10px;">最新版でない場合は末尾に <code>?v=vanilla5</code> を付けてリロードしてください。</div>
+      <div class="muted" style="margin-top:10px;">最新版でない場合は末尾に <code>?v=vanilla6</code> を付けてリロードしてください。</div>
     </div>
   </div>
 
 <script>
 (function(){
   'use strict';
-  const W=900,H=520, topY=100, bottomY=H-40;
-  const nameTextY = 42;
+  const W=900,H=520, topY=120, bottomY=H-40;   // ladder moved further down
+  const nameTextY = 44;                         // name label a bit down too
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   // State
@@ -119,13 +119,15 @@ svg{ display:block; width:100%; height:100%; }
     const out=[];
     const minGap=28;
     const baseCount = clamp(Math.round(height/120), 2, 7);
+    const minY = topY + 60;          // push first rung further down
+    const maxY = bottomY - 20;
     for(let p=0;p<numPlayers-1;p++){
       const count = baseCount + Math.floor(Math.random()*2);
       const ys=[];
       for(let i=0;i<count;i++){
         let tries=0;
-        while(tries<40){
-          const y = topY + 10 + Math.random()*(height - 20);
+        while(tries<60){
+          const y = minY + Math.random()*(maxY - minY);
           if(ys.every(yy=>Math.abs(yy-y)>=minGap)){
             const neighborLeft  = out.filter(r=>r.leftCol===p-1);
             const neighborRight = out.filter(r=>r.leftCol===p+1);
@@ -196,7 +198,7 @@ svg{ display:block; width:100%; height:100%; }
       hline.setAttribute('stroke', '#111'); hline.setAttribute('stroke-width','3');
       svg.appendChild(hline);
     }
-    // names (top) with IDs so we can update text only
+    // names (top)
     for(let i=0;i<colXs.length;i++){
       const t = document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x', colXs[i]); t.setAttribute('y', nameTextY); t.setAttribute('text-anchor','middle');
@@ -260,7 +262,7 @@ svg{ display:block; width:100%; height:100%; }
   function onGenerate(){
     commitClamp();
     if(num < 2){ alert('人数は2人以上にしてください。'); return; }
-    names = Array(num).fill(''); // fresh start
+    names = Array(num).fill(''); // fresh start each time
     rungs = generateRungs(num, bottomY - topY);
     winBottom = Math.floor(Math.random() * num);
     revealed = false; winnerTop = null;
