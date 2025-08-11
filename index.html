@@ -5,9 +5,9 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png"/><meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <style>
-html,body{margin:0;padding:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,Helvetica,Arial,sans-serif}
+html,body{margin:0;padding:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans JP,Helvetica,Arial,sans-serif;overflow-x:hidden}
 .container{max-width:1000px;margin:24px auto;padding:16px}
-.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:16px;overflow:hidden}
 .h1{font-size:22px;font-weight:800;margin:0 0 12px;letter-spacing:.02em}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
 .label{font-size:12px;margin-bottom:4px;display:block;color:#334155}
@@ -19,22 +19,21 @@ input[type=text]{width:140px}
 .muted{color:#64748b;font-size:12px}
 .stage{margin-top:16px}
 
-/* Responsive SVG holder (keeps 900x520 ratio) */
+/* Responsive SVG holder */
 .svg-holder{position:relative;width:100%;max-width:100%;}
 .svg-spacer{width:100%;padding-top:57.7777%;} /* 520/900*100 */
 .svg-abs{position:absolute;inset:0;}
 svg{display:block;width:100%;height:100%}
 
-/* Inputs overlay inside the same holder so they track scaling */
+/* Inputs overlay */
 .top-inputs{position:absolute;left:0;right:0;top:6px;z-index:3;pointer-events:none;}
-.top-inputs .name-wrap{position:absolute;transform:translateX(-50%);width:28vw;max-width:120px;min-width:64px}
+.top-inputs .name-wrap{position:absolute;transform:translateX(-50%);}
 .top-inputs input{background:#fff;width:100%;pointer-events:auto;}
 
 /* Small screens */
 @media (max-width:600px){
   .container{margin:0 auto;padding:8px}
   .h1{font-size:20px}
-  .top-inputs .name-wrap{width:18vw;max-width:90px;min-width:56px}
 }
 .version{color:#94a3b8;font-size:11px;margin-left:8px}
 </style>
@@ -45,7 +44,7 @@ svg{display:block;width:100%;height:100%}
 <script type="text/babel">
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 function generateRungs(n,h){const r=[];const minGap=28;const pairs=n-1;const base=Math.max(2,Math.min(7,Math.round(h/120)));
-  for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random() * 2);const ys=[];
+  for(let p=0;p<pairs;p++){const count=base+Math.floor(Math.random()*2);const ys=[];
     for(let i=0;i<count;i++){let tries=0;while(tries<40){const y=40+Math.random()*(h-80);
       if(ys.every(yy=>Math.abs(yy-y)>=minGap)){const left=r.filter(x=>x.leftCol===p-1),right=r.filter(x=>x.leftCol===p+1);
         const near=[...left,...right].some(x=>Math.abs(x.y-y)<minGap*0.7);
@@ -64,7 +63,8 @@ function App(){const W=900,H=520,topY=40,bottomY=H-40;
   const [rev,setRev]=React.useState(false);
   const [winTop,setWinTop]=React.useState(null);
 
-  const colXs=React.useMemo(()=>{const margin=80,usable=W-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num]);
+  const margin=window.innerWidth<600?60:80;
+  const colXs=React.useMemo(()=>{const usable=W-margin*2,gap=num>1?usable/(num-1):0;return Array.from({length:num},(_,i)=>margin+i*gap)},[num,margin]);
 
   const commitClamp=(raw)=>{const parsed=parseInt(raw||'0',10); const v=clamp(Number.isFinite(parsed)?parsed:0,2,16); setNum(v); setNumInput(String(v));};
 
@@ -83,8 +83,13 @@ function App(){const W=900,H=520,topY=40,bottomY=H-40;
 
   const winnerName=React.useMemo(()=>winTop==null?'':(names[winTop]||`参加者${winTop+1}`),[winTop,names]);
 
+  // Name input width in vw (depends on number of players): 14–22vw clamped
+  const nameWidthVw = clamp( Math.round((100/num)*0.7), 14, 22 );
+  const leftClampMin = nameWidthVw/2 + 2;
+  const leftClampMax = 100 - nameWidthVw/2 - 2;
+
   return(<div>
-    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-responsive-v1</span></h1>
+    <h1 className="h1">あみだくじ <span className="version">v 2025-08-11-responsive-v2</span></h1>
     <div className="row">
       <div>
         <label className="label">人数</label>
@@ -115,12 +120,16 @@ function App(){const W=900,H=520,topY=40,bottomY=H-40;
           </svg>
         </div>
         <div className="top-inputs" aria-label="参加者名入力欄">
-          {colXs.map((x,i)=>(
-            <div key={'n-'+i} className="name-wrap" style={{left:(x/900*100)+'%'}}>
-              <input type="text" aria-label={'参加者'+(i+1)+'の名前'} autoComplete="off" placeholder={'名前'+(i+1)}
-                value={names[i]||''} onChange={(e)=>{const v=e.target.value;setNames(prev=>{const next=[...prev];next[i]=v;return next;});}}/>
-            </div>
-          ))}
+          {colXs.map((x,i)=>{
+            const leftPctRaw = x/900*100;
+            const leftPct = clamp(leftPctRaw, leftClampMin, leftClampMax);
+            return (
+              <div key={'n-'+i} className="name-wrap" style={{left: leftPct + '%', width: nameWidthVw + 'vw'}}>
+                <input type="text" aria-label={'参加者'+(i+1)+'の名前'} autoComplete="off" placeholder={'名前'+(i+1)}
+                  value={names[i]||''} onChange={(e)=>{const v=e.target.value;setNames(prev=>{const next=[...prev];next[i]=v;return next;});}}/>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>)}
